@@ -2,14 +2,30 @@
 #![no_main]
 #![no_std]
 
-use aux5::entry;
+use volatile::Volatile;
+use aux5::{entry, Delay, DelayMs, LedArray, OutputSwitch};
 
 #[entry]
 fn main() -> ! {
-    let _y;
-    let x = 42;
-    _y = x;
 
-    // infinite loop; just so we don't leave this stack frame
-    loop {}
+    let (mut delay, mut leds): (Delay, LedArray) = aux5::init();
+
+    let cycle_time = 50_u16;
+
+    let mut next = 0;
+
+    let mut off = 0;
+    loop {
+
+
+        let off = (8 + next - 2) % 8;
+        leds[next].on().ok();
+        leds[off].off().ok();
+
+        delay.delay_ms(cycle_time);
+
+        next = (next + 1) % 8;
+
+
+    }
 }

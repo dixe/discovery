@@ -42,7 +42,7 @@ fn main() -> ! {
 
         let adc1_in1_data: u16 = adc1.read(&mut adc1_in1_pin).expect("Error reading from adc1.");
 
-        iprintln!(&mut itm, "PA0 reads {}", adc1_in1_data);
+        iprintln!(&mut itm, "PA1 reads {}", adc1_in1_data);
 
     }
 }

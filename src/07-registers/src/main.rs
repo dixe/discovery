@@ -1,29 +1,39 @@
 #![no_main]
 #![no_std]
 
+use panic_itm as _; // panic handler
+
+use core::ptr;
+
 #[allow(unused_imports)]
-use aux7::{entry, iprint, iprintln};
+use aux7::{entry, iprintln, ITM};
 
 #[entry]
 fn main() -> ! {
-    aux7::init();
+    let gpioe = aux7::init().1;
 
-    unsafe {
-        // A magic address!
-        const GPIOE_BSRR: u32 = 0x48001018;
+    gpioe.bsrr.write(|w| w.bs9().set_bit());
 
-        // Turn on the "North" LED (red)
-        *(GPIOE_BSRR as *mut u32) = 1 << 9;
+    gpioe.bsrr.write(|w| w.bs11().set_bit());
 
-        // Turn on the "East" LED (green)
-        *(GPIOE_BSRR as *mut u32) = 1 << 11;
+    gpioe.bsrr.write(|w| w.br9().set_bit());
 
-        // Turn off the "North" LED
-        *(GPIOE_BSRR as *mut u32) = 1 << (9 + 16);
+    gpioe.bsrr.write(|w| w.br11().set_bit());
 
-        // Turn off the "East" LED
-        *(GPIOE_BSRR as *mut u32) = 1 << (11 + 16);
-    }
 
     loop {}
+}
+
+
+fn iprint_odr(itm: &mut ITM) {
+
+    const GPIOE_ODR: u32 = 0x4800_1014;
+
+    unsafe {
+        iprintln!(
+            &mut itm.stim[0],
+            "ODR = 0x{:04x}",
+            ptr::read_volatile(GPIOE_ODR as *const u16));
+    }
+
 }

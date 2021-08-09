@@ -9,6 +9,10 @@ members = [
   "src/14-i2c",
   "src/15-led-compass",
   "src/16-punch-o-meter",
+  "src/POC_accel",
+  "src/POC_adc",
+  "src/POC_dac",
+  "src/POC_pwm",
 ]
 
 [profile.release]
