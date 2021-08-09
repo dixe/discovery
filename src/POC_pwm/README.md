@@ -1,117 +1,34 @@
-# LEDs, again
+# POC pwm esc
 
-In the last section, I gave you *initialized* (configured) peripherals (I initialized them in
-`aux7::init`). That's why just writing to `BSRR` was enough to control the LEDs. But, peripherals
-are not *initialized* right after the microcontroller boots.
 
-In this section, you'll have more fun with registers. I won't do any initialization and you'll have
-to initialize configure `GPIOE` pins as digital outputs pins so that you'll be able to drive LEDs
-again.
+Simple control with analog stick Y to increase/decrease motor speed.
 
-This is the starter code.
+User button (blue on board) will stop the motor.
 
-``` rust
-{{#include src/main.rs}}
-```
 
-If you run the starter code, you'll see that nothing happens this time. Furthermore, if you print
-the `GPIOE` register block, you'll see that every register reads as zero even after the
-`gpioe.odr.write` statement was executed!
+# Startup
+Init start with low and wait for moter 3 beep then 2 beep and a long beep now the motor i ready and we can use the motor
 
-```
-$ cargo run
-Breakpoint 1, main () at src/08-leds-again/src/main.rs:9
-9           let (gpioe, rcc) = aux8::init();
 
-(gdb) continue
-Continuing.
 
-Program received signal SIGTRAP, Trace/breakpoint trap.
-0x08000f3c in __bkpt ()
+##  Wiring
+This only works if the board has power from the ESC into 5v, and common ground. Debugging stil seems to work, it just need the power.
 
-(gdb) finish
-Run till exit from #0  0x08000f3c in __bkpt ()
-main () at src/08-leds-again/src/main.rs:25
-25          aux8::bkpt();
+### Esc
+- Control(yellow) to PA4
+- ESC Brown to ground
+- ESC red to board 5v INPUT
 
-(gdb) p/x *gpioe
-$1 = stm32f30x::gpioc::RegisterBlock {
-  moder: stm32f30x::gpioc::MODER {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  },
-  otyper: stm32f30x::gpioc::OTYPER {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  },
-  ospeedr: stm32f30x::gpioc::OSPEEDR {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  },
-  pupdr: stm32f30x::gpioc::PUPDR {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  },
-  idr: stm32f30x::gpioc::IDR {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  },
-  odr: stm32f30x::gpioc::ODR {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  },
-  bsrr: stm32f30x::gpioc::BSRR {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  },
-  lckr: stm32f30x::gpioc::LCKR {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  },
-  afrl: stm32f30x::gpioc::AFRL {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  },
-  afrh: stm32f30x::gpioc::AFRH {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  },
-  brr: stm32f30x::gpioc::BRR {
-    register: vcell::VolatileCell<u32> {
-      value: core::cell::UnsafeCell<u32> {
-        value: 0x0
-      }
-    }
-  }
-}
-```
+
+### Analog Stick
+- Control(yellow) to PA1
+- Brown to common ground
+- Red to board 3v OUTPUT
+
+
+# Detail
+
+The pwn signal generated on PA4 is a 50hz signal with a pulse width between 1 ms and 2 ms. So between 5% and 10% duty cycle, using a resolution of 65535.
+
+
+The analog stick uses the adc1 on PA1, with values between 0 and 4094. Using 3v as input gives a value of about 2048 when stick is in neutral. Using 5V intput for analog stick results in neutral value of about 3000.

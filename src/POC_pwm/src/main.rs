@@ -1,26 +1,24 @@
 #![no_std]
 #![no_main]
 
-
-
 //! Example usage for ADC on STM32F303
 
 use panic_itm as _; // panic handler
 
-use cortex_m::{asm, iprintln};
+use cortex_m::{iprintln};
 use cortex_m_rt::entry;
 use stm32f3xx_hal::{
     adc,
     prelude::*,
-    pac::{self, RCC},
-    delay::Delay,
+    pac,
     flash::FlashExt,
-    gpio::{self, GpioExt},
-    rcc::{self, RccExt},
-    pwm::{self, tim16, tim2, tim3, tim8},
+    rcc::{ RccExt},
+    gpio::{self},
+    pwm::{self, tim3},
 };
 
-use stm32f3xx_hal::hal::{PwmPin, blocking::delay::DelayMs,};
+
+mod reset_button;
 
 
 // Wiring
@@ -39,6 +37,10 @@ use stm32f3xx_hal::hal::{PwmPin, blocking::delay::DelayMs,};
 // Now pressins user btn will start and stop the moter
 
 
+// adc1 read y axis of stick,
+// pin: PA1
+// stick should have 3v in and common ground
+
 
 // Based on https://github.com/stm32-rs/stm32f3xx-hal/blob/master/examples/pwm.rs
 #[entry]
@@ -53,7 +55,6 @@ fn main() -> ! {
     let mut itm = &mut cp.ITM.stim[0];
 
     let clocks = rcc.cfgr.freeze(&mut dp.FLASH.constrain().acr);
-    let mut delay = Delay::new(cp.SYST, clocks);
 
 
     let mut adc1 = adc::Adc::adc1(
@@ -91,7 +92,7 @@ fn main() -> ! {
     );
 
 
-    let mut led3 = gpioe
+    let led3 = gpioe
         .pe9
         .into_push_pull_output(&mut gpioe.moder, &mut gpioe.otyper);
 
@@ -105,101 +106,115 @@ fn main() -> ! {
         .into_input(&mut gpioa.moder);
 
 
+    let mut reset_btn = reset_button::ResetButton::new(pa0);
+
+
     // each channel can have different duty cycle
-    let mut tim3_ch2 = tim3_ch2_nopin.output_to_pa4(pa4);
+    let tim3_ch2 = tim3_ch2_nopin.output_to_pa4(pa4);
 
+    let mut motor1 = Motor1WithLed1::new(tim3_ch2, led3);
+    iprintln!(&mut itm, "Started motor1 with pwm duty set to {}", motor1.get_duty());
 
-    // min should be 1 ms
-    // max should be 2 ms
-    // freq is 50 hz so that 20 ms pr cycle
-
-    let min = tim3_ch2.get_max_duty() / 20;
-    let max = tim3_ch2.get_max_duty() / 10;
-
-    tim3_ch2.set_duty(min);
-    tim3_ch2.enable();
-
-
-    let duty = u16::from(tim3_ch2.get_duty());
-
-    iprintln!(&mut itm, "Duty reads {}", duty);
-
-    let init = min;
-    tim3_ch2.set_duty(init);
-
-    iprintln!(&mut itm, "Init pwm duty set to {}", init);
-
-    let mut pressed = false;
-
-    let mut pwm_state_high = init == max;
 
     loop {
-        let duty = tim3_ch2.get_duty();
 
-        match toogle_pa0(pressed, &pa0) {
-            ButtonAction::Pressed => {
 
-                pressed = true;
-                pwm_state_high = !pwm_state_high;
+        // When pressed do this set pwm low and turn of light
+        reset_btn.check_reset_press(|| {
 
-                let new_duty = if pwm_state_high
-                {
-                    max
-                } else {
-                    min
-                };
+            motor1.set_min();
+            iprintln!(&mut itm, "user btn press, pwm duty set to {}", motor1.get_duty());
+        });
 
-                if max == new_duty {
-                    led3.set_high();
-                }
+        let adc1_in1_data: u16 = adc1.read(&mut adc1_in1_pin).expect("Error reading from adc1.");
+        //iprintln!(&mut itm, "INPUT ADC  {}", adc1_in1_data);
 
-                if min == new_duty {
-                    led3.set_low();
-                }
-                tim3_ch2.set_duty(new_duty);
-                iprintln!(&mut itm, "user btn press, pwm duty set to {}", new_duty);
 
-            },
-            ButtonAction::Released => {
-                //iprintln!(&mut itm, "user btn release");
-                pressed = false;
-            },
-            ButtonAction::NoAction => {}
+        if adc1_in1_data > 3500 {
+
+            motor1.increment_and_set(1);
+
+            iprintln!(&mut itm, "Increasing duty currentlty {}", motor1.get_duty());
         }
 
-        let high = pa0.is_high().unwrap();
+        else if adc1_in1_data < 500 {
 
+            motor1.decrement_and_set(1);
 
-        //iprintln!(&mut itm, "Duty reads {} - max={} pa0 high = {}", duty, max, high);
-        //        tim3_ch2.set_duty(max/ 2);
+            iprintln!(&mut itm, "Decreasing  duty currentlty {}", motor1.get_duty());
+        }
 
-        //delay.delay_ms(1_000_u16);
 
     }
 }
 
-enum ButtonAction {
-    NoAction,
-    Pressed,
-    Released
+
+struct Motor1WithLed1 {
+    pwm_channel: pwm::PwmChannel<pwm::TIM3_CH2, pwm::WithPins>,
+    led: gpio::gpioe::PE9<gpio::Output<gpio::PushPull>>,
+    led_on: bool,
+    duty: u16,
+    min: u16,
+    max: u16
 }
 
+impl Motor1WithLed1 {
 
-fn toogle_pa0(pressed: bool, pa0: &gpio::gpioa::PA0<gpio::Input>) -> ButtonAction {
-    let high = pa0.is_high().unwrap();
 
-    if !pressed && high {
-        // new press react
-        return ButtonAction::Pressed
+    pub fn new(mut pwm_channel: pwm::PwmChannel<pwm::TIM3_CH2, pwm::WithPins>, led: gpio::gpioe::PE9<gpio::Output<gpio::PushPull>>) -> Self {
+
+        let min = pwm_channel.get_max_duty() / 20;
+        let max = pwm_channel.get_max_duty() / 10;
+
+        pwm_channel.set_duty(min);
+        pwm_channel.enable();
+
+        Motor1WithLed1 {
+            pwm_channel,
+            led,
+            led_on: false,
+            duty: min,
+            min,
+            max
+        }
     }
 
-    if pressed && !high {
-        // released, reset pressed
-        return ButtonAction::Released
+    pub fn get_duty(&self) -> u16 {
+        self.duty
     }
 
-    // no pressed and not high, don't care
-    // Or pressed and still high
-    ButtonAction::NoAction
+    pub fn increment_and_set(&mut self, inc: u16) {
+        self.duty = core::cmp::min(self.max, self.duty + inc);
+        self.pwm_channel.set_duty(self.duty);
 
+        if !self.led_on {
+            self.led_on = true;
+            self.led.set_high().unwrap();
+        }
+
+    }
+
+    pub fn decrement_and_set(&mut self, dec: u16) {
+
+        self.duty = core::cmp::max(self.min, self.duty - dec);
+        self.pwm_channel.set_duty(self.duty);
+
+        if self.led_on && self.duty == self.min {
+            self.led_on = false;
+            self.led.set_low().unwrap();
+        }
+
+    }
+
+    pub fn set_min(&mut self) {
+
+        // set pwm to min
+        self.duty = self.min;
+        self.pwm_channel.set_duty(self.duty);
+
+        // Set led to off
+        self.led.set_low().unwrap();
+        self.led_on = false;
+
+    }
 }
