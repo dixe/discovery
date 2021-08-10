@@ -21,6 +21,7 @@ use stm32f3_discovery::{
 
     },
 };
+
 use lsm303agr::{self, AccelOutputDataRate, mode::MagOneShot, interface::I2cInterface};
 
 pub type Lsm303agr = lsm303agr::Lsm303agr<I2cInterface<I2c<I2C1,(PB6<AF4>, PB7<AF4>)>>, MagOneShot>;

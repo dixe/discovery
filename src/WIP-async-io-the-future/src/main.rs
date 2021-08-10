@@ -22,10 +22,10 @@ pub fn main() -> ! {
         .cycle();
     loop {
         if let Async::Ready(()) = periodic.poll() {
-        if let Some((current, next)) = leds.next() {
-            current.off();
-            next.on();
+            if let Some((current, next)) = leds.next() {
+                current.off();
+                next.on();
+            }
         }
-    }
     }
 }

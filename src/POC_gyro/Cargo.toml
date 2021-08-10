@@ -1,0 +1,8 @@
+[package]
+authors = ["Jorge Aparicio <jorge@japaric.io>"]
+edition = "2018"
+name = "poc_gyro"
+version = "0.1.0"
+
+[dependencies]
+aux14_gyro = { path = "auxiliary" }

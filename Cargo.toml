@@ -13,6 +13,7 @@ members = [
   "src/POC_adc",
   "src/POC_dac",
   "src/POC_pwm",
+  "src/POC_gyro",
 ]
 
 [profile.release]

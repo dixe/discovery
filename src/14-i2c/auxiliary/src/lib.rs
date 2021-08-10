@@ -11,7 +11,6 @@ pub use stm32f3_discovery::stm32f3xx_hal::{delay::Delay, prelude, stm32::i2c1};
 
 use cortex_m::peripheral::ITM;
 use stm32f3_discovery::{
-    lsm303dlhc::Lsm303dlhc,
     stm32f3xx_hal::{
         i2c::I2c,
         prelude::*,
@@ -19,7 +18,10 @@ use stm32f3_discovery::{
     },
 };
 
-pub fn init() -> (&'static i2c1::RegisterBlock, Delay, ITM) {
+
+use lsm303agr::Lsm303agr;
+
+pub fn init() -> (&'static i2c1::RegisterBlock, Delay, ITM, Lsm303agr<MagOneShot>) {
     let cp = cortex_m::Peripherals::take().unwrap();
     let dp = stm32::Peripherals::take().unwrap();
 
@@ -34,9 +36,9 @@ pub fn init() -> (&'static i2c1::RegisterBlock, Delay, ITM) {
 
     let i2c = I2c::new(dp.I2C1, (scl, sda), 400.khz(), clocks, &mut rcc.apb1);
 
-    Lsm303dlhc::new(i2c).unwrap();
+    let lsm303 : u32  = Lsm303agr::new_with_i2c(i2c);
 
     let delay = Delay::new(cp.SYST, clocks);
 
-    unsafe { (&mut *(I2C1::ptr() as *mut _), delay, cp.ITM) }
+    unsafe { (&mut *(I2C1::ptr() as *mut _), delay, cp.ITM, lsm303) }
 }

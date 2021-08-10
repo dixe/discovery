@@ -1,26 +1,49 @@
+
+
+
+
+
+
+
+
+
+
+
+// USE POC_ACCEL NOT THIS, THIS DOES NOT WORK, IT MIGHT COMPILE
+// BUT OUTPUT IS NOT CORRECT, SETUP NOT WORKING
+
+
+
+
+
+
+
+
+
+
+
 #![deny(unsafe_code)]
 #![no_main]
 #![no_std]
 
 #[allow(unused_imports)]
 use aux14::{entry, iprint, iprintln, prelude::*};
-use m::float;
+
 
 // Slave address
 const MAGNETOMETER: u16 = 0b0011_1100;
 
 // Addresses of the magnetometer's registers
 const OUT_X_H_M: u8 = 0x068;// In book it is 'const OUT_X_H_M: u8 = 0x03;' but with new LSM303AGR we need to use this 0x68
-const IRA_REG_M: u8 = 0x0A;
 
 const CTRL_REG1_A: u8 = 0x020;
+
 
 const ACC_STARTUP: u8 = 0x057;
 
 #[entry]
 fn main() -> ! {
-    let (i2c1, mut delay, mut itm) = aux14::init();
-
+    let (i2c1, mut delay, mut itm, lsm) = aux14::init();
 
     // Broadcast START
     // Broadcast the MAGNETOMETER address with the R/W bit set to Write (w.rd_wrn.clear_bit())
@@ -95,12 +118,13 @@ fn main() -> ! {
         let z_l = u16::from(buffer[4]);
         let z_h = u16::from(buffer[5]);
 
-        let x_lsb = ((x_l + (x_h << 8)) as i16) >> 6;
+        let x = ((x_l + (x_h << 8)) as i16);
         let y = (y_l + (y_h << 8)) as i16;
         let z = (z_l + (z_h << 8)) as i16;
 
-        let x = x_lsb * 3.9;
-        iprintln!(&mut itm.stim[0], "x={:?} y={:?} z={:?}",x,y,z);
+        let accel_status = lsm.accel_status();
+
+        iprintln!(&mut itm.stim[0], "status = {:?}x={:?} y={:?} z={:?}",accel_status, x,y,z);
 
         delay.delay_ms(2_00_u16);
     }

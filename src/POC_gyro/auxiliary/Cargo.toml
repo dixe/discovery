@@ -1,13 +1,12 @@
-
 [package]
 authors = ["Jorge Aparicio <jorge@japaric.io>"]
 edition = "2018"
-name = "poc_pwm"
+name = "aux14_gyro"
 version = "0.1.0"
 
 [dependencies]
-cortex-m = "0.7.2"
-cortex-m-rt =  "0.6.13"
-panic-itm = "0.4.2"
+cortex-m = "0.6.3"
+cortex-m-rt = "0.6.3"
+panic-itm = "0.4.0"
+i3g4250d = "0.3.0"
 stm32f3xx-hal = { version = "0.7.0", features = ["ld", "rt", "stm32f303xc"] }
-lsm303agr = "0.2.0"
