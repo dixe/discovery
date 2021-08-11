@@ -17,7 +17,7 @@ use stm32f3xx_hal::{
     i2c::I2c
 };
 
-
+use stm32f3xx_hal::gpio::gpioa::*;
 use stm32f3xx_hal::gpio::gpiob::*;
 use stm32f3xx_hal::gpio::*;
 use lsm303agr::{self, AccelOutputDataRate, mode::MagOneShot, interface::I2cInterface};
@@ -54,10 +54,75 @@ mod reset_button;
 #[entry]
 fn main() -> ! {
 
+    let mut io_parts = init();
+    let mut cp = pac::CorePeripherals::take().unwrap();
+    let itm = &mut cp.ITM.stim[0];
+
+    iprintln!(itm, "Started motor1 with pwm duty set to {}", io_parts.motor1.get_duty());
+
+    loop {
+
+        // When pressed do this set pwm low and turn of light
+        let motor = &mut io_parts.motor1;
+        io_parts.reset_btn.check_reset_press(|| {
+
+            motor.set_min();
+
+            iprintln!(itm, "user btn press, pwm duty set to {}", motor.get_duty());
+        });
+
+        let adc1_in1_data: u16 = io_parts.adc.read().expect("Error reading from adc1.");
+        //iprintln!(&mut itm, "INPUT ADC  {}", adc1_in1_data);
+
+
+        if adc1_in1_data > 3500 {
+
+            io_parts.motor1.increment_and_set(1);
+
+
+            iprintln!(itm, "Increasing duty currentlty {}", io_parts.motor1.get_duty());
+        }
+
+        else if adc1_in1_data < 500 {
+
+            io_parts.motor1.decrement_and_set(1);
+
+            //iprintln!(&mut itm, "Decreasing  duty currentlty  {} -- adc in={}", motor1.get_duty(), adc1_in1_data);
+        }
+
+        if io_parts.lsm303.accel_status().unwrap().xyz_new_data {
+            let data = io_parts.lsm303.accel_data().unwrap();
+            iprintln!(itm, "Acceleration: x {} y {} z {}", data.x, data.y, data.z);
+        }
+
+    }
+}
+
+
+struct IoParts {
+    motor1: motor1_led1::Motor1WithLed1,
+    reset_btn: reset_button::ResetButton,
+    lsm303: Lsm303agr ,
+    adc: Adc1PA1
+}
+
+struct Adc1PA1 {
+    adc_pin: PA1<Analog>,
+    adc: adc::Adc<pac::ADC1>
+}
+
+impl Adc1PA1 {
+    pub fn read(&mut self) -> Result<u16, stm32f3xx_hal::nb::Error<()>> {
+        self.adc.read(&mut self.adc_pin)
+    }
+
+}
+
+fn init() -> IoParts {
     let mut dp = pac::Peripherals::take().unwrap();
     let mut cp = pac::CorePeripherals::take().unwrap();
     let mut rcc = dp.RCC.constrain();
-    let mut itm = &mut cp.ITM.stim[0];
+    let mut itm  = &mut cp.ITM.stim[0];
 
     let clocks = rcc.cfgr.freeze(&mut dp.FLASH.constrain().acr);
 
@@ -155,48 +220,23 @@ fn main() -> ! {
 
 
 
-    let mut reset_btn = reset_button::ResetButton::new(pa0);
+    let reset_btn = reset_button::ResetButton::new(pa0);
 
 
     // each channel can have different duty cycle
     let tim3_ch2 = tim3_ch2_nopin.output_to_pa4(pa4);
 
-    let mut motor1 = motor1_led1::Motor1WithLed1::new(tim3_ch2, led3);
-    iprintln!(&mut itm, "Started motor1 with pwm duty set to {}", motor1.get_duty());
+    let motor1 = motor1_led1::Motor1WithLed1::new(tim3_ch2, led3);
 
 
-    loop {
+    IoParts {
+        motor1,
+        reset_btn,
+        lsm303,
+        adc: Adc1PA1 {
+            adc_pin: adc1_in1_pin,
+            adc: adc1
 
-
-        // When pressed do this set pwm low and turn of light
-        reset_btn.check_reset_press(|| {
-
-            motor1.set_min();
-            iprintln!(&mut itm, "user btn press, pwm duty set to {}", motor1.get_duty());
-        });
-
-        let adc1_in1_data: u16 = adc1.read(&mut adc1_in1_pin).expect("Error reading from adc1.");
-        //iprintln!(&mut itm, "INPUT ADC  {}", adc1_in1_data);
-
-
-        if adc1_in1_data > 3500 {
-
-            motor1.increment_and_set(1);
-
-            iprintln!(&mut itm, "Increasing duty currentlty {}", motor1.get_duty());
         }
-
-        else if adc1_in1_data < 500 {
-
-            motor1.decrement_and_set(1);
-
-            //iprintln!(&mut itm, "Decreasing  duty currentlty  {} -- adc in={}", motor1.get_duty(), adc1_in1_data);
-        }
-
-        if lsm303.accel_status().unwrap().xyz_new_data {
-            let data = lsm303.accel_data().unwrap();
-            iprintln!(&mut itm, "Acceleration: x {} y {} z {}", data.x, data.y, data.z);
-        }
-
     }
 }
