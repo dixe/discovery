@@ -3,24 +3,34 @@
 #![no_std]
 
 #[allow(unused_imports)]
-use aux14_accel::{entry, iprint, iprintln, prelude::*};
+use aux14_gyro::{entry, iprint, iprintln, prelude::*};
 
 
 #[entry]
 fn main() -> ! {
-    let (i2c1,  mut lsm303agr, mut delay, mut itm) = aux14_accel::init();
+    let (mut gyro, mut delay, mut itm) = aux14_gyro::init();
 
+    assert_eq!( gyro.who_am_i().unwrap(), 0xD3);
+    iprintln!(&mut itm.stim[0], "WHO AM I {}", gyro.who_am_i().unwrap());
+
+    let scale = gyro.scale().unwrap();
+
+    let mut status;
     loop {
 
-        if lsm303agr.accel_status().unwrap().xyz_new_data {
-            let data = lsm303agr.accel_data().unwrap();
+        status = gyro.status().unwrap();
+        if status.new_data {
+            let data = gyro.gyro().unwrap();
 
-            iprintln!(&mut itm.stim[0], "Acceleration: x {} y {} z {}", data.x, data.y, data.z);
+            iprintln!(&mut itm.stim[0], "Gyro: x {} y {} z {} Odr = {:?}",
+                      scale.degrees(data.x),
+                      scale.degrees(data.y),
+                      scale.degrees(data.z),
+                      gyro.odr().unwrap());
         }
         else {
-            iprintln!(&mut itm.stim[0], "No new data");
+            iprintln!(&mut itm.stim[0], "NOT READY");
         }
-
 
     }
 }
