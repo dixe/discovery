@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <title>POC pwm esc</title>
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+    <h1 class="title">POC pwm esc</h1>
+    <nav id="TOC"><ul>
+<li><a href="#startup">1 Startup</a><ul>
+<li><a href="#wiring">1.1 Wiring</a><ul>
+<li><a href="#esc">1.1.1 Esc</a><ul></ul></li>
+<li><a href="#analog-stick">1.1.2 Analog Stick</a><ul></ul></li></ul></li></ul></li>
+<li><a href="#detail">2 Detail</a><ul></ul></li></ul></nav><p>Simple control with analog stick Y to increase/decrease motor speed.</p>
+<p>User button (blue on board) will stop the motor.</p>
+<h1 id="startup" class="section-header"><a href="#startup">1 Startup</a></h1>
+<p>Init start with low and wait for moter 3 beep then 2 beep and a long beep now the motor i ready and we can use the motor</p>
+<h2 id="wiring" class="section-header"><a href="#wiring">1.1 Wiring</a></h2>
+<p>This only works if the board has power from the ESC into 5v, and common ground. Debugging stil seems to work, it just need the power.</p>
+<h3 id="esc" class="section-header"><a href="#esc">1.1.1 Esc</a></h3>
+<ul>
+<li>Control(yellow) to PA4</li>
+<li>ESC Brown to ground</li>
+<li>ESC red to board 5v INPUT</li>
+</ul>
+<h3 id="analog-stick" class="section-header"><a href="#analog-stick">1.1.2 Analog Stick</a></h3>
+<ul>
+<li>Control(yellow) to PA1</li>
+<li>Brown to common ground</li>
+<li>Red to board 3v OUTPUT</li>
+</ul>
+<h1 id="detail" class="section-header"><a href="#detail">2 Detail</a></h1>
+<p>The pwn signal generated on PA4 is a 50hz signal with a pulse width between 1 ms and 2 ms. So between 5% and 10% duty cycle, using a resolution of 65535.</p>
+<p>The analog stick uses the adc1 on PA1, with values between 0 and 4094. Using 3v as input gives a value of about 2048 when stick is in neutral. Using 5V intput for analog stick results in neutral value of about 3000.</p>
+<p>Wiring
+PA4 is pwm output and goes to ESC Yellow
+ESC Brown to ground
+ESC red to 5v</p>
+<p>This only works if the board has power from the ESC into 5v
+Debugging stil seems to work, it just need the power</p>
+<p>Pressing the user btn (blue) switches between high and low
+low is 1 ms pulse width
+hiigh is 2ms pulse width</p>
+<p>Init start with low and wait for moter 3 beep then long
+Now pressins user btn will start and stop the moter</p>
+<p>adc1 read y axis of stick,
+pin: PA1
+stick should have 3v in and common ground</p>
+<p>Based on <a href="https://github.com/stm32-rs/stm32f3xx-hal/blob/master/examples/pwm.rs">https://github.com/stm32-rs/stm32f3xx-hal/blob/master/examples/pwm.rs</a></p>
+
+    
+</body>
+</html>

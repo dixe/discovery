@@ -14,6 +14,7 @@ members = [
   "src/POC_dac",
   "src/POC_pwm",
   "src/POC_gyro",
+  "src/POC_timer_int",
 ]
 
 [profile.release]

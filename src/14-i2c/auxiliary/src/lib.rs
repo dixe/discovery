@@ -40,5 +40,6 @@ pub fn init() -> (&'static i2c1::RegisterBlock, Delay, ITM, Lsm303agr<MagOneShot
 
     let delay = Delay::new(cp.SYST, clocks);
 
+
     unsafe { (&mut *(I2C1::ptr() as *mut _), delay, cp.ITM, lsm303) }
 }

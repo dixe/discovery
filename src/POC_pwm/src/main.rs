@@ -1,3 +1,33 @@
+//! # Wiring
+//!
+//! - PA4 is pwm output and goes to ESC Yellow
+//!
+//! - ESC Brown to ground
+//!
+//! - ESC red to 5v
+//!
+//! This only works if the board has power from the ESC into 5v.
+//! Debugging stil seems to work, it just need the power
+//!
+//!
+//!
+//!  Pressing the user btn (blue) switches between high and low.
+//! - Low is 1 ms pulse width
+//! - High is 2ms pulse width
+//!
+//!
+//! Startup
+//! - Init start with low and wait for moter 3 beep then long
+//! - Now pressins user btn will start and stop the moter
+//!
+//! adc1 read y axis of stick,
+//! - pin: PA1
+//! - stick should have 3v in and common ground
+
+
+//! Based on <https://github.com/stm32-rs/stm32f3xx-hal/blob/master/examples/pwm.rs>
+
+
 #![no_std]
 #![no_main]
 
@@ -28,29 +58,6 @@ pub type Lsm303agr = lsm303agr::Lsm303agr<I2cInterface<I2c<I2C1,(PB6<AF4<OpenDra
 mod motor1_led1;
 mod reset_button;
 
-
-// Wiring
-// PA4 is pwm output and goes to ESC Yellow
-// ESC Brown to ground
-// ESC red to 5v
-
-// This only works if the board has power from the ESC into 5v
-// Debugging stil seems to work, it just need the power
-
-// Pressing the user btn (blue) switches between high and low
-// low is 1 ms pulse width
-// hiigh is 2ms pulse width
-
-// Init start with low and wait for moter 3 beep then long
-// Now pressins user btn will start and stop the moter
-
-
-// adc1 read y axis of stick,
-// pin: PA1
-// stick should have 3v in and common ground
-
-
-// Based on https://github.com/stm32-rs/stm32f3xx-hal/blob/master/examples/pwm.rs
 #[entry]
 fn main() -> ! {
 
@@ -106,8 +113,11 @@ struct IoParts {
     adc: Adc1PA1
 }
 
+/// Combination of adc1 using PA1 as adc source
 struct Adc1PA1 {
+    /// adc pin to be read from
     adc_pin: PA1<Analog>,
+    /// adc that reads from adc_pin
     adc: adc::Adc<pac::ADC1>
 }
 
