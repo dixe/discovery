@@ -1,0 +1,13 @@
+
+[package]
+authors = ["Nikolaj Fris Østergaard <niko.fris@gmail.com>"]
+edition = "2018"
+name = "drone_flight_controller"
+version = "0.1.0"
+
+[dependencies]
+cortex-m = "0.7.2"
+cortex-m-rt =  "0.6.13"
+panic-itm = "0.4.2"
+stm32f3xx-hal = { version = "0.7.0", features = ["ld", "rt", "stm32f303xc"] }
+lsm303agr = "0.2.0"

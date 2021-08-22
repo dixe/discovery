@@ -15,6 +15,7 @@ members = [
   "src/POC_pwm",
   "src/POC_gyro",
   "src/POC_timer_int",
+  "src/drone_flight_controller",
 ]
 
 [profile.release]
