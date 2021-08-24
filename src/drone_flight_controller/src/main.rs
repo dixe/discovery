@@ -35,12 +35,10 @@ fn main() -> ! {
 
     let mut accel_info = DataInformation::new();
 
-
     let baseline = 1000.0 * 1000.0 ;
     loop {
-
-
         update_and_print_accel_info(&mut io_parts.accel_and_compas, &mut io_parts.reset_btn, &mut accel_info, itm);
+        //update_and_print_mag_info(&mut io_parts.accel_and_compas, itm);
 
     }
 }
@@ -59,7 +57,12 @@ fn update_and_print_accel_info(lsm303: &mut accel_and_compas::AccelAndCompas,
 
     accel_info.add_measure(new_measure);
 
-    iprintln!(itm, "min: {} max: {}", accel_info.min(), accel_info.max());
+    //iprintln!(itm, "min: {} max: {}", accel_info.min(), accel_info.max());
+
+    let data = lsm303.get_accel_data();
+
+    iprintln!(itm, "x {} y {} z {}", data.x, data.y, data.z);
+
 
     // reset if pressed
     reset_btn.check_reset_press(|| {
@@ -67,6 +70,14 @@ fn update_and_print_accel_info(lsm303: &mut accel_and_compas::AccelAndCompas,
         accel_info.reset_min_max();
 
     });
+
+}
+
+fn update_and_print_mag_info(lsm303: &mut accel_and_compas::AccelAndCompas, itm: &mut Stim) {
+
+    let data = lsm303.get_mag_data();
+
+    iprintln!(itm, "x {} y {} z {}", data.x, data.y, data.z);
 
 }
 

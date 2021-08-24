@@ -103,6 +103,8 @@ pub fn init() -> IoParts {
 
 
 
+    // MOTOR PINS
+
     // Setup pin pa4 as digital output
     // This pin is connected to the motor control and produces the PWM
     // signal that controls the motor
@@ -110,6 +112,17 @@ pub fn init() -> IoParts {
         .pa4
         .into_af2_push_pull(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
 
+
+    // GYRO PINS
+
+    // Setup pin pa5 as serial clock(sck)
+    let sck =  gpioa.pa5.into_af5_push_pull(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
+
+    // Setup pin pa6 as master in slave out data pin (miso)
+    let miso = gpioa.pa6.into_af5_push_pull(&mut gpioa.moder,  &mut gpioa.otyper, &mut gpioa.afrl);
+
+    // Setup pin pa6 as master out slave in data pin (mosi)
+    let mosi = gpioa.pa7.into_af5_push_pull(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
 
 
     // GPIOB
@@ -135,14 +148,25 @@ pub fn init() -> IoParts {
         .pe9
         .into_push_pull_output(&mut gpioe.moder, &mut gpioe.otyper);
 
+
+    //
+
+
+
+
+
+
+
+
+
     // Setup I2C for 400 Khz (400.000 Hz)
     let i2c = I2c::new(dp.I2C1, (scl, sda), 400_000.Hz(), clocks, &mut rcc.apb1);
 
     // Setup lsm (acc and gyro)
 
-    let mut lsm303 = Lsm303agr::new_with_i2c(i2c);
-    lsm303.init().unwrap();
-    lsm303.set_accel_odr(AccelOutputDataRate::Hz10).unwrap();
+    let lsm303 = Lsm303agr::new_with_i2c(i2c);
+
+
 
 
     //SETUP ADC FOR ANALOG STICK
@@ -154,15 +178,13 @@ pub fn init() -> IoParts {
         adc::CkMode::default(),
         clocks);
 
-
-
-
     let adc1_in1_data: u16 = adc1.read(&mut adc1_in1_pin).expect("Error reading from adc1.");
 
 
     // TIM3
     //
     // A four channel general purpose timer that's broadly available
+    // For motors(1)
 
     let (_tim3_ch1, tim3_ch2_nopin, _tim3_ch3, _tim3_ch4) = tim3(
         dp.TIM3,
@@ -170,8 +192,6 @@ pub fn init() -> IoParts {
         50.Hz(),
         &clocks,
     );
-
-
 
     let reset_btn = reset_button::ResetButton::new(pa0);
 
